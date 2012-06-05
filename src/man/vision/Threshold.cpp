@@ -706,6 +706,69 @@ void Threshold::setBoundaryPoints(int x1, int y1, int x2, int y2, int x3, int y3
     }
 }
 
+bool Threshold::ballNearShoulder(int x, int y, int w, int h) {
+    const int pixInImageLeft = getPixelBoundaryLeft();
+    const int pixInImageRight = getPixelBoundaryRight();
+    const int pixInImageUp = getPixelBoundaryUp();
+    const int MIDY = 40;
+    const int MIDX = 90;
+    const int LOWBOUND = -200;
+    const int RIGHTBAL = 571;
+    const int RIGHTFUDGE = 20;
+    const int UPTRANSLATE = 85;
+    const int HEIGHT = 200;
+    const int TOPRIGHT = 250;
+    const int HIGHBOUND = -50;
+    const int COMPENSATION = 20;
+
+    for (int i = 0; i < IMAGE_WIDTH; i++) {
+        lowerBound[i] = IMAGE_HEIGHT - 1;
+    }
+    int up = pixInImageUp;
+    if (pixInImageUp < HIGHBOUND) {
+        up -= COMPENSATION;
+    } else if (pixInImageUp > -HIGHBOUND) {
+        up += COMPENSATION;
+    }
+    if (pixInImageRight < 150) {
+        up -= COMPENSATION;
+    }
+    if (pixInImageLeft > 170) {
+        up -= COMPENSATION;
+    }
+    int xp = -1, yp = -1;
+    if (pixInImageRight > 0 && pixInImageRight < IMAGE_WIDTH + RIGHTFUDGE) {
+        xp = pixInImageRight - RIGHTFUDGE;
+        yp = IMAGE_HEIGHT  + (up - UPTRANSLATE);
+        setBoundaryPoints(xp, yp, xp + 100, yp - 130,
+                          pixInImageRight + TOPRIGHT, yp - HEIGHT);
+        if (pixInImageRight + TOPRIGHT < IMAGE_WIDTH -1) {
+            for (int i = pixInImageRight + TOPRIGHT; i < IMAGE_WIDTH; i++) {
+                lowerBound[i] = max(0, yp - HEIGHT);
+            }
+        }
+    }
+    if (pixInImageLeft > 0 && pixInImageLeft < IMAGE_WIDTH) {
+        xp = pixInImageLeft;
+        yp = IMAGE_HEIGHT + (up - UPTRANSLATE);
+        setBoundaryPoints(pixInImageLeft - TOPRIGHT, yp - HEIGHT,
+                          xp - 100, yp - 130,
+                          xp, yp);
+        if (pixInImageLeft > TOPRIGHT) {
+            for (int i = 0; i < pixInImageLeft - TOPRIGHT; i++) {
+                lowerBound[i] = max(0, yp - HEIGHT);
+            }
+        }
+    }
+	for (int i = x; i < x + w; i++) {
+		cout << "In shoulder " << y << " " << lowerBound[x] << endl;
+		if (lowerBound[i] < y + h + 10) {
+			return true;
+		}
+	}
+	return false;
+}
+
 /** Detect the shoulders of the robot and ignore them.  Our goal is to set lower
 	bounds for all of the vertical scanlines.
 	To Do:  Detect feet and hands.

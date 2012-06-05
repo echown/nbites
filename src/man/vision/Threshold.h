@@ -142,6 +142,7 @@ public:
     void findBallsCrosses(int column, int top);
 	void findBallLowerCamera(int column, int topEdge);
     void detectSelf();
+	bool ballNearShoulder(int x, int y, int w, int h);
     void setBoundaryPoints(int x1, int y1, int x2, int y2, int x3, int y3);
     void objectRecognition();
     void newFindRobots(); //ben's function

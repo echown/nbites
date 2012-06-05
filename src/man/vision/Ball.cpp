@@ -100,6 +100,7 @@ void Ball::init(float s)
 	numberOfRuns = 0;
 	indexOfBiggestRun = 0;
 	numPoints = 0;
+	BALLDEBUG = true;
 }
 
 /* This is the entry  point ball recognition in Threshold.cc
@@ -195,7 +196,7 @@ void Ball::preScreenBlobsBasedOnSizeAndColor() {
                     cout << "Candidate ball2 " << endl;
                     printBlob(blobs->get(i));
                 }
-            } else {
+            } else if (!thresh->ballNearShoulder(x, y, w, h)) {
                 if (BALLDEBUG) {
                     drawBlob(blobs->get(i), BLACK);
                     printBlob(blobs->get(i));
