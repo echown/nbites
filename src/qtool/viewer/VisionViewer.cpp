@@ -181,8 +181,11 @@ VisionViewer::VisionViewer(RobotMemoryManager::const_ptr memoryManager) :
 }
 
 void VisionViewer::update(){
+	if (!this->isVisible())
+		return;
   imageTranscribe->acquireNewImage();
-  sensors->updateVisionAngles();
+  //sensors->updateVisionAngles();
+  memoryManager->getMemory()->getMVisionSensors()->copyTo(sensors);
   vision->notifyImage(sensors->getImage(Camera::BOTTOM));
   offlineMVision->updateData();
   // Will need to get these to be diffent thresholded images but vision

@@ -228,6 +228,7 @@ void Threshold::runs() {
     // back when the robots had colored shoulder pads we worried about seeing them
     detectSelf();
 #endif
+	detectSelf();
 	for (int i = IMAGE_HEIGHT - 1; i >= 0; i--) {
 		pixDistance[i] = vision->pose->pixEstimate(IMAGE_WIDTH / 2, i, 0.0).dist;
 	}
@@ -593,8 +594,8 @@ void Threshold::setOpenFieldInformation() {
    lane.  We assume our kick will go straight so we look at the center of the
    image and work our way out.  The results indicate whether we should kick, and
    also suggest a direction to move if the kick would be blocked.
-   @param   one         The "crossbar" which is our target area, also used to return
-                        results
+   @param   one    The "crossbar" which is our target area, also used to return
+                   results
  */
 
 void Threshold::setShot(VisualCrossbar* one) {
@@ -681,11 +682,11 @@ void Threshold::setBoundaryPoints(int x1, int y1, int x2, int y2, int x3, int y3
     for (int i = x1; i < x2 && i < IMAGE_WIDTH; i++) {
         if (i >= 0 && start < IMAGE_HEIGHT) {
             int temp = max(0, (int)start);
-#ifdef OFFLINE
+//#ifdef OFFLINE
             if (debugSelf) {
                 vision->drawPoint(i, temp, BLACK);
             }
-#endif
+//#endif
             lowerBound[i] = temp;
         }
         start -= step;
@@ -696,11 +697,11 @@ void Threshold::setBoundaryPoints(int x1, int y1, int x2, int y2, int x3, int y3
         if (i >= 0 && start < IMAGE_HEIGHT) {
             int temp = max(0, (int)start);
             lowerBound[i] = temp;
-#ifdef OFFLINE
+//#ifdef OFFLINE
             if (debugSelf) {
                 vision->drawPoint(i, temp, BLACK);
             }
-#endif
+//#endif
         }
         start += step;
     }
@@ -760,6 +761,9 @@ bool Threshold::ballNearShoulder(int x, int y, int w, int h) {
             }
         }
     }
+	for (int i = 0; i < IMAGE_WIDTH; i++) {
+		vision->drawPoint(i, lowerBound[i], MAROON);
+	}
 	for (int i = x; i < x + w; i++) {
 		cout << "In shoulder " << y << " " << lowerBound[x] << endl;
 		if (lowerBound[i] < y + h + 10) {
@@ -779,6 +783,8 @@ void Threshold::detectSelf() {
     const int pixInImageLeft = getPixelBoundaryLeft();
     const int pixInImageRight = getPixelBoundaryRight();
     const int pixInImageUp = getPixelBoundaryUp();
+	cout << "Boundaries " << pixInImageLeft << " " << pixInImageRight << " " <<
+		pixInImageUp << endl;
     const int MIDY = 40;
     const int MIDX = 90;
     const int LOWBOUND = -200;
@@ -1517,12 +1523,14 @@ int Threshold::getPixelBoundaryLeft() {
 
 int Threshold::getPixelBoundaryRight() {
     const float headYaw = pose->getHeadYaw();
+	cout << "Yaw is " << headYaw << endl;
     const float angleInImageRight = HORIZONTAL_SHOULDER_THRESH_RIGHT - headYaw;
     return static_cast<int>(-angleInImageRight * RAD_TO_PIX_X) + IMAGE_WIDTH / 2;
 }
 
 int Threshold::getPixelBoundaryUp() {
     const float headPitch = pose->getHeadPitch();
+	cout << "Pitch is " << headPitch << endl;
     const float angleInImageUp = VERTICAL_SHOULDER_THRESH - headPitch;
     return static_cast<int>(angleInImageUp * RAD_TO_PIX_Y) + IMAGE_HEIGHT / 2;
 }
@@ -1555,7 +1563,7 @@ void Threshold::transposeDebugImage(){
 	}
       }
     }
-  
+
     initDebugImage();
 #endif
 }
