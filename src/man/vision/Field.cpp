@@ -83,6 +83,8 @@ void Field::initialScanForTopGreenPoints(int pH) {
 	unsigned char pixel;
 	int topGreen = 0;
 	int greenRun = 0;
+    float possible = 0.0f;
+    const float BUFFER = 200.0f; // other fields should be farther than this
 	// we need a better criteria for what the top is
 	for (int i = 0; i < HULLS; i++) {
 		good = 0;
@@ -103,13 +105,53 @@ void Field::initialScanForTopGreenPoints(int pH) {
 				x--;
 			}
 			pixel = thresh->getColor(x, top);
+            // watch out for patches of green off the field
+            if (topGreen != IMAGE_HEIGHT - 1 &&
+                possible - thresh->getPixDistance(top) > BUFFER) {
+                topGreen = IMAGE_HEIGHT - 1;
+            }
 			//pixel = thresh->thresholded[top][x];
 			if (Utility::isGreen(pixel) || Utility::isOrange(pixel)) {
 				good++;
 				greenRun++;
 				if (greenRun > 3 && topGreen == IMAGE_HEIGHT - 1) {
 					topGreen = top - greenRun;
+                    possible = thresh->getPixDistance(topGreen);
 				}
+                // before we finish make sure we haven't seen another field
+                if (good == RUNSIZE) {
+                    float topDist = thresh->getPixDistance(topGreen);
+                    float newDist = thresh->getPixDistance(top);
+                    if (topDist > BUFFER) {
+                        if (topDist - newDist > BUFFER / 2) {
+                            topGreen = top - greenRun;
+                        } else {
+                            while (Utility::isGreen(pixel) &&
+                                   top < IMAGE_HEIGHT - 1) {
+                                top++;
+                                pixel = thresh->getColor(x, top);
+                            }
+                            float edgeDist = thresh->getPixDistance(top);
+                            int greens = 0;
+                            int start = top;
+                            while (thresh->getPixDistance(top) > BUFFER) {
+                                top++;
+                                pixel = thresh->getColor(x, top);
+                                if (Utility::isGreen(pixel)) {
+                                    greens++;
+                                }
+                            }
+                            // if we're a way away, make sure there is more green
+                            if (top > start + 5) {
+                                if (greens / (top - start) < 0.30f) {
+                                    topGreen = IMAGE_HEIGHT - 1;
+                                    good = 0;
+                                    greenRun = 0;
+                                }
+                            }
+                        }
+                    }
+                }
 			} else if (Utility::isOrange(pixel) || Utility::isWhite(pixel)) {
 				//good++;
 				greenRun = 0;
