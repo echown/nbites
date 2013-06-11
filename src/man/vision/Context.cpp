@@ -280,6 +280,14 @@ void Context::classifyT(VisualCorner & first) {
     int horizon = field->horizonAt(first.getX());
     float dist = realDistance(first.getX(), first.getY(),
                               first.getX(), horizon);
+	if (first.getDistance() > 100 && dist > 250) {
+		if (debugIdentifyCorners) {
+			cout << "T is too far from horizon, must be a CC" << endl;
+		}
+		first.setShape(CIRCLE);
+		return;
+	}
+
     bool sideT = false;
     // we are generous normally on same half we can be more precise
     // for Ts
@@ -1461,6 +1469,13 @@ void Context::findCornerRelationship(VisualCorner & first,
                     checkConnectedTs(second, first);
                 }
             } else if (second.getShape() == CIRCLE) {
+				if (common == first.getLine2()) {
+					if (debugIdentifyCorners) {
+						cout << "Looks like a fake T" << endl;
+					}
+					first.setShape(CIRCLE);
+					return;
+				}
                 checkTToCenter(first, second);
             }
         }
@@ -1473,6 +1488,13 @@ void Context::findCornerRelationship(VisualCorner & first,
                 checkTToFieldCorner(second, first);
             }
         } else {
+			if (common == second.getLine2()) {
+				if (debugIdentifyCorners) {
+					cout << "Looks like a fake T" << endl;
+				}
+				second.setShape(CIRCLE);
+				return;
+			}
             checkTToCenter(second, first);
         }
     } else {
