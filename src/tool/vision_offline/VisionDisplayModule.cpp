@@ -172,7 +172,6 @@ QImage VisionDisplayModule::makeOverlay(Camera::Type which)
 	const messages::VisionBall *visBall = visMod.vision_ball.getMessage(true).get();
 
 	if (which == Camera::TOP) {
-		std::cout << "there are " << visField->visual_line_size() << " lines in the image\n";
 		for (int i = 0; i < visField->visual_line_size(); i++) {
 
 			painter.drawLine(visField->visual_line(i).start_x(),
