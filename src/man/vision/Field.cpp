@@ -51,8 +51,8 @@ Field::Field(Vision* vis, Threshold * thr)
 	// NOTE: leave this in please, else I will "git blame" and cut off your
 	// funding. - chown
 #ifdef OFFLINE
-	debugFieldEdge = false;
-	debugHorizon = false;
+	debugFieldEdge = true;
+	debugHorizon = true;
 #endif
 }
 
@@ -64,6 +64,7 @@ Field::Field(Vision* vis, Threshold * thr)
    @param pH    the horizon found by findGreenHorizon
 */
 void Field::initialScanForTopGreenPoints(int pH) {
+	cout << "In scan " << endl;
 	int good, ok, top;
 	unsigned char pixel;
 	int topGreen = 0;
@@ -94,8 +95,11 @@ void Field::initialScanForTopGreenPoints(int pH) {
 			pixel = thresh->getColor(x, top);
             // watch out for patches of green off the field
             if (topGreen != IMAGE_HEIGHT - 1 &&
-				lastGreen - top >  5 &&
-                possible - thresh->getPixDistance(top) > BUFFER) {
+				top - lastGreen  >  5 &&
+                possible - thresh->getPixDistance(top) > BUFFER / 2) {
+				if (debugFieldEdge) {
+					cout << "Detected bad patch " << x << " " << top << " " << lastGreen << endl;
+				}
                 topGreen = IMAGE_HEIGHT - 1;
             }
 			//pixel = thresh->thresholded[top][x];
@@ -112,7 +116,51 @@ void Field::initialScanForTopGreenPoints(int pH) {
                     float topDist = thresh->getPixDistance(topGreen);
                     float newDist = thresh->getPixDistance(top);
                     if (topDist > BUFFER) {
-                        if (topDist - newDist > BUFFER / 2) {
+						int check = top;
+						int greens = 0;
+						int check2 = top;
+						bool found = false;
+						while (thresh->getPixDistance(check) > BUFFER ||
+							   check < IMAGE_HEIGHT / 2 && !found) {
+							check++;
+							pixel = thresh->getColor(x, check);
+							greens = 0;
+							while (Utility::isGreen(pixel) && check < IMAGE_HEIGHT - 1 &&
+								   greens < 6) {
+								check++;
+								greens++;
+								pixel = thresh->getColor(x, check);
+							}
+							if (greens >= 6) {
+								check2 = check;
+								found = true;
+							} else if (greens > 2) {
+								check2 = check;
+							}
+							while (!Utility::isGreen(pixel) && check < IMAGE_HEIGHT - 1) {
+								check++;
+								pixel = thresh->getColor(x, check);
+							}
+							if (thresh->getPixDistance(check2) - thresh->getPixDistance(check)
+								> BUFFER / 2) {
+								topGreen = IMAGE_HEIGHT - 1;
+								top = check;
+								good = 1;
+								greenRun = 1;
+								check = IMAGE_HEIGHT - 1;
+							}
+						}
+						//cout << "Check end " << check << endl;
+						/*cout << x << " " << check << " " << top << endl;
+						if (check - top > 5 && greens / (check - top) < 0.4) {
+							if (debugFieldEdge) {
+								cout << "Gap in " << x << endl;
+							}
+							topGreen = IMAGE_HEIGHT - 1;
+							good = 0;
+							greenRun = 0;
+							}*/
+                        /*if (topDist - newDist > BUFFER / 2) {
                             topGreen = top - greenRun;
                         } else {
                             while (Utility::isGreen(pixel) &&
@@ -133,7 +181,8 @@ void Field::initialScanForTopGreenPoints(int pH) {
                             // if we're a way away, make sure there is more green
                             if (top > start + 5) {
 								if (debugFieldEdge) {
-									cout << "Correcting " << x << std::endl;
+									cout << "Correcting " << x <<
+										" " << topDist << " " << topGreen << std::endl;
 									vision->drawPoint(x, topGreen, BLUE);
 								}
                                 if (greens / (top - start) < 0.30f) {
@@ -142,7 +191,7 @@ void Field::initialScanForTopGreenPoints(int pH) {
                                     greenRun = 0;
                                 }
                             }
-                        }
+							}*/
                     }
                 }
 			} else if (Utility::isOrange(pixel) || Utility::isWhite(pixel)) {
@@ -185,9 +234,17 @@ void Field::initialScanForTopGreenPoints(int pH) {
                 convex[good].y = convex[good-1].y;
             }
         }
+		// special case for the edges
+		if (convex[HULLS - 2].y - convex[HULLS - 1].y > 15) {
+			convex[HULLS - 1].y = convex[HULLS - 2].y;
+		}
+		if (convex[1].y - convex[0].y > 15) {
+			convex[0].y = convex[1].y;
+		}
     }
     for (good = 0; convex[good].y == IMAGE_HEIGHT && good < HULLS; good++) {}
     if (good < HULLS) {
+		cout << "In here " << convex[HULLS - 1] << endl;
         for (int i = good-1; i > -1; i--) {
             convex[i].y = convex[i+1].y;
         }
@@ -204,6 +261,7 @@ void Field::initialScanForTopGreenPoints(int pH) {
         convex[HULLS - 1].y = convex[HULLS - 3].y;
         convex[HULLS - 2].y = convex[HULLS - 3].y;
     }
+	cout << "Out " << endl;
 }
 
 /* At this point we have found our convex hull as defined for the scanlines.
@@ -229,7 +287,7 @@ void Field::findTopEdges(int M) {
             topEdge[j] = (int)cur;
             if (debugFieldEdge) {
                 if (j < convex[i].x - 2) {
-                    vision->drawPoint(j, (int)cur, BLACK);
+                    vision->drawPoint(j, (int)cur, BLUE);
                 } else {
                     vision->drawPoint(j, (int)cur, RED);
                 }
@@ -341,6 +399,7 @@ int Field::getInitialHorizonEstimate(int pH) {
     int run, greenPixels, scanY;
     register int i, j;
     unsigned char pixel; //, lastPixel;
+	int best = -1;
 
     int pixelsNeeded = MIN_PIXELS_HARDER;
     if (pH < -100) {
@@ -351,6 +410,13 @@ int Field::getInitialHorizonEstimate(int pH) {
     greenPixels = 0;         // count for any given line
     scanY = 0;                 // which line are we scanning
     int firstpix = 0;
+	/*int find = IMAGE_HEIGHT - 1;
+	// see if there are any gaps that are relatively far away
+	while (thresh->getPixDistance(find) < 250 && find > 0) {
+		find--;
+	}
+	if (find > 0) {
+	}*/
     // we're going to do this backwards of how we used to - we start at the pose
     // horizon and scan down.  This will provide an initial estimate
     for (j = max(0, pH); j < IMAGE_HEIGHT && horizon == -1; j+=SCAN_INTERVAL_Y) {
@@ -375,8 +441,8 @@ int Field::getInitialHorizonEstimate(int pH) {
         }
         // once we see enough green we're done
         if (greenPixels > pixelsNeeded) {
-            return j;
-        }
+			return j;
+		}
     }
     return j;
 }
