@@ -51,8 +51,8 @@ Field::Field(Vision* vis, Threshold * thr)
 	// NOTE: leave this in please, else I will "git blame" and cut off your
 	// funding. - chown
 #ifdef OFFLINE
-	debugFieldEdge = true;
-	debugHorizon = true;
+	debugFieldEdge = false;
+	debugHorizon = false;
 #endif
 }
 
@@ -64,7 +64,6 @@ Field::Field(Vision* vis, Threshold * thr)
    @param pH    the horizon found by findGreenHorizon
 */
 void Field::initialScanForTopGreenPoints(int pH) {
-	cout << "In scan " << endl;
 	int good, ok, top;
 	unsigned char pixel;
 	int topGreen = 0;
@@ -110,6 +109,10 @@ void Field::initialScanForTopGreenPoints(int pH) {
 				if (greenRun > 3 && topGreen == IMAGE_HEIGHT - 1) {
 					topGreen = top - greenRun;
                     possible = thresh->getPixDistance(topGreen);
+					if (debugFieldEdge) {
+						cout << "Setting topGreen " << x << " " << topGreen << endl;
+						vision->drawPoint(x, topGreen, BLUE);
+					}
 				}
                 // before we finish make sure we haven't seen another field
                 if (good == RUNSIZE) {
@@ -119,6 +122,7 @@ void Field::initialScanForTopGreenPoints(int pH) {
 						int check = top;
 						int greens = 0;
 						int check2 = top;
+						int whites = 0;
 						bool found = false;
 						while (thresh->getPixDistance(check) > BUFFER ||
 							   check < IMAGE_HEIGHT / 2 && !found) {
@@ -139,10 +143,18 @@ void Field::initialScanForTopGreenPoints(int pH) {
 							}
 							while (!Utility::isGreen(pixel) && check < IMAGE_HEIGHT - 1) {
 								check++;
+								if (Utility::isWhite(pixel)) {
+									whites++;
+								}
 								pixel = thresh->getColor(x, check);
 							}
 							if (thresh->getPixDistance(check2) - thresh->getPixDistance(check)
-								> BUFFER / 2) {
+								> BUFFER / 2 && check - check2 > 5 && check - check2 - whites > 4) {
+								if (debugFieldEdge) {
+									cout << "Unsetting top green " <<
+										(thresh->getPixDistance(check2) - thresh->getPixDistance(check))
+										 << endl;
+								}
 								topGreen = IMAGE_HEIGHT - 1;
 								top = check;
 								good = 1;
@@ -150,48 +162,6 @@ void Field::initialScanForTopGreenPoints(int pH) {
 								check = IMAGE_HEIGHT - 1;
 							}
 						}
-						//cout << "Check end " << check << endl;
-						/*cout << x << " " << check << " " << top << endl;
-						if (check - top > 5 && greens / (check - top) < 0.4) {
-							if (debugFieldEdge) {
-								cout << "Gap in " << x << endl;
-							}
-							topGreen = IMAGE_HEIGHT - 1;
-							good = 0;
-							greenRun = 0;
-							}*/
-                        /*if (topDist - newDist > BUFFER / 2) {
-                            topGreen = top - greenRun;
-                        } else {
-                            while (Utility::isGreen(pixel) &&
-                                   top < IMAGE_HEIGHT - 1) {
-                                top++;
-                                pixel = thresh->getColor(x, top);
-                            }
-                            float edgeDist = thresh->getPixDistance(top);
-                            int greens = 0;
-                            int start = top;
-                            while (thresh->getPixDistance(top) > BUFFER) {
-                                top++;
-                                pixel = thresh->getColor(x, top);
-                                if (Utility::isGreen(pixel)) {
-                                    greens++;
-                                }
-                            }
-                            // if we're a way away, make sure there is more green
-                            if (top > start + 5) {
-								if (debugFieldEdge) {
-									cout << "Correcting " << x <<
-										" " << topDist << " " << topGreen << std::endl;
-									vision->drawPoint(x, topGreen, BLUE);
-								}
-                                if (greens / (top - start) < 0.30f) {
-                                    topGreen = IMAGE_HEIGHT - 1;
-                                    good = 0;
-                                    greenRun = 0;
-                                }
-                            }
-							}*/
                     }
                 }
 			} else if (Utility::isOrange(pixel) || Utility::isWhite(pixel)) {
@@ -244,7 +214,6 @@ void Field::initialScanForTopGreenPoints(int pH) {
     }
     for (good = 0; convex[good].y == IMAGE_HEIGHT && good < HULLS; good++) {}
     if (good < HULLS) {
-		cout << "In here " << convex[HULLS - 1] << endl;
         for (int i = good-1; i > -1; i--) {
             convex[i].y = convex[i+1].y;
         }
@@ -261,7 +230,6 @@ void Field::initialScanForTopGreenPoints(int pH) {
         convex[HULLS - 1].y = convex[HULLS - 3].y;
         convex[HULLS - 2].y = convex[HULLS - 3].y;
     }
-	cout << "Out " << endl;
 }
 
 /* At this point we have found our convex hull as defined for the scanlines.
