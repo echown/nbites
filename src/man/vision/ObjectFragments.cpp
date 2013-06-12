@@ -105,11 +105,11 @@ ObjectFragments::ObjectFragments(Vision* vis, Threshold* thr, Field* fie,
 	// unless you get Chown's approval.  These make running the tool
 	// offline bearable
 #ifdef OFFLINE
-	POSTDEBUG = false;
+	POSTDEBUG = true;
 	CORRECT = false;
 	PRINTOBJS = false;
 	POSTLOGIC = false;
-	SANITY = false;
+	SANITY = true;
 #endif
 }
 
@@ -2164,7 +2164,7 @@ void ObjectFragments::updateRunsAfterFirstPost(Blob pole, int post) {
         }
     }
     // now get rid of all the ones on the wrong side of the post
-    for (int i = 0; i < numberOfRuns; i++) {
+    /*for (int i = 0; i < numberOfRuns; i++) {
         nextX = runs[i].x;
         if ((nextX < trueLeft && post == LEFT) ||
             (nextX > trueRight && post == RIGHT)) {
@@ -2174,7 +2174,7 @@ void ObjectFragments::updateRunsAfterFirstPost(Blob pole, int post) {
              (nextX < trueRight + NEAR_DISTANCE && post == LEFT) ) {
             runs[i].h = 0;
         }
-    }
+		}*/
 }
 
 /* Look for goal posts.
@@ -2217,11 +2217,33 @@ void ObjectFragments::lookForFirstPost(VisualFieldObject* left,
         return;
     }
 
+    updateRunsAfterFirstPost(pole, LEFT);
+    Blob secondPost;
+    // ready to grab the potential post
+	int POST_NEAR_DIST = 5;
+    isItAPost = grabPost(c, pole.getLeft() - POST_NEAR_DIST,
+                         pole.getRight() + POST_NEAR_DIST, secondPost);
+
+	if (isPostReasonableSizeShapeAndPlace(secondPost)) {
+		cout << "Got a second post" << endl;
+	}
+
+
+
     dc = checkDist(pole);
     // first characterize the size of the possible post
     int howbig = characterizeSize(pole);
     // now see if we can figure out whether it is a right or left post
     int post = classifyFirstPost(c, pole);
+
+	if (post != LEFT && post != RIGHT && isItAPost) {
+		cout << "Using extra post" << endl;
+		if (pole.getLeftBottomX() < secondPost.getLeftBottomX()) {
+			post = LEFT;
+		} else {
+			post = RIGHT;
+		}
+	}
 
 	// make sure the post is down to the level of the field edge
 	if (pole.getLeftBottomY() < horizonAt(pole.getLeftBottomX())) {
