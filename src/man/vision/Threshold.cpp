@@ -226,6 +226,7 @@ void Threshold::obstacleLoop(const messages::JointAngles& ja, const messages::In
 /* Main vision loop, called by Vision.cc
  */
 void Threshold::visionLoop(const messages::JointAngles& ja, const messages::InertialState& inert) {
+	cout << "Enter vision loop" << endl;
     usingTopCamera = true;
 
     PROF_ENTER(P_TRANSFORM);
@@ -339,6 +340,7 @@ void Threshold::visionLoop(const messages::JointAngles& ja, const messages::Iner
             //cout << "Bottom is " << vision->ygrp->getLeftBottomY() << endl;
         }
     }
+	cout << "Exit vision loop " << endl;
 }
 
 /*
