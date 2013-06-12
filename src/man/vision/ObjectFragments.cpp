@@ -1459,24 +1459,24 @@ int ObjectFragments::classifyByOuterL(Blob post, VisualCorner & corner) {
 		int classification = NOPOST;
 		if (l1 > l2 && l1 > GOALBOX_DEPTH + 40.0f) {
 			if (endl1.y < endl2.y) {
-				if (endl1.x > post.getRight()) {
+				if (endl1.x > post.getLeft()) {
 					classification = RIGHT;
 				} else {
 					classification =  LEFT;
 				}
-			} else if (endl2.x > post.getRight()) {
+			} else if (endl2.x > post.getLeft()) {
 				classification = RIGHT;
 			} else {
 				classification = LEFT;
 			}
 		} else if (l2 > l1 && l2 > GOALBOX_DEPTH + 40.0f) {
 			if (end1.y < end2.y) {
-				if (end1.x > post.getRight()) {
+				if (end1.x > post.getLeft()) {
 					classification =  RIGHT;
 				} else {
 					classification = LEFT;
 				}
-			} else if (end2.x > post.getRight()) {
+			} else if (end2.x > post.getLeft()) {
 				classification = RIGHT;
 			} else {
 				classification = LEFT;
