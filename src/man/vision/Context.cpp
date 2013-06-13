@@ -443,8 +443,21 @@ void Context::classifyOuterLMidAngle(VisualCorner & corner,
         // we're at the side of the goal - just check direction
         if (corner.doesItPointRight()) {
             corner.setSecondaryShape(LEFT_GOAL_L);
+			// while we're at it, make sure IDs are correct
+			if (vision->yglp->getDistance() == 0 && vision->ygrp->getDistance() > 0) {
+				if (debugIdentifyCorners) {
+					cout << "Bad post ID" << endl;
+				}
+				postSwap(vision->yglp, vision->ygrp);
+			}
         } else {
             corner.setSecondaryShape(RIGHT_GOAL_L);
+			if (vision->ygrp->getDistance() == 0 && vision->yglp->getDistance() > 0) {
+				if (debugIdentifyCorners) {
+					cout << "Bad post ID" << endl;
+				}
+				postSwap(vision->ygrp, vision->yglp);
+			}
         }
     } else {
         // we're staring towards the goal, again check direction
@@ -545,10 +558,20 @@ void Context::classifyOuterL(VisualCorner & corner) {
                 if (top.x > top2.x) {
                     if (face == FACING_GOAL) {
                         corner.setSecondaryShape(LEFT_GOAL_L);
+						if (vision->yglp->getDistance() == 0 && vision->ygrp->getDistance() > 0) {
+							if (debugIdentifyCorners) {
+								cout << "Bad post ID" << endl;
+							}
+						}
                     }
                 } else {
                     if (face == FACING_GOAL) {
                         corner.setSecondaryShape(RIGHT_GOAL_L);
+						if (vision->ygrp->getDistance() == 0 && vision->yglp->getDistance() > 0) {
+							if (debugIdentifyCorners) {
+								cout << "Bad post ID" << endl;
+							}
+						}
                     }
                 }
             }
@@ -565,10 +588,16 @@ void Context::classifyOuterL(VisualCorner & corner) {
                 if (top2.x > top.x) {
                     if (face == FACING_GOAL) {
                         corner.setSecondaryShape(LEFT_GOAL_L);
+						if (vision->yglp->getDistance() == 0 && vision->ygrp->getDistance() > 0) {
+							cout << "Bad post ID" << endl;
+						}
                     }
                 } else {
                     if (face == FACING_GOAL) {
                         corner.setSecondaryShape(RIGHT_GOAL_L);
+						if (vision->ygrp->getDistance() == 0 && vision->yglp->getDistance() > 0) {
+							cout << "Bad post ID" << endl;
+						}
                     }
                 }
             }
@@ -1693,6 +1722,34 @@ float Context::getAllowedDistanceError(const VisualFieldObject * obj) const
     return obj->getDistanceSD() * 2;
 }
 
+
+/* We misidentified a post.	 Now that we've figured that out we need to
+ *	switch it to the correct post.	Just transfer the information and reinit the
+ *	previously IDd post.
+ * @param p1	the correct post
+ * @param p2	the wrong one
+ */
+// TODO: Use a copy constructor...
+void Context::postSwap(VisualFieldObject * p1, VisualFieldObject * p2){
+    p1->setLeftTopX(p2->getLeftTopX());
+    p1->setLeftTopY(p2->getLeftTopY());
+    p1->setLeftBottomX(p2->getLeftBottomX());
+    p1->setLeftBottomY(p2->getLeftBottomY());
+    p1->setRightTopX(p2->getRightTopX());
+    p1->setRightTopY(p2->getRightTopY());
+    p1->setRightBottomX(p2->getRightBottomX());
+    p1->setRightBottomY(p2->getRightBottomY());
+    p1->setX(p2->getLeftTopX());
+    p1->setY(p2->getLeftTopY());
+    p1->setWidth(p2->getWidth());
+    p1->setHeight(p2->getHeight());
+    p1->setCenterX(p2->getCenterX());
+    p1->setCenterY(p2->getCenterY());
+    p1->setIDCertainty(_SURE);
+    p1->setDistanceCertainty(p2->getDistanceCertainty());
+    p1->setDistance(1);
+    p2->init();
+}
 
 /* This method should only be called with a VisualFieldObject object that has a
    concrete location on the field (YGLP, YGRP, BGLP, BGRP, BY, and YB).
