@@ -1235,6 +1235,11 @@ void Threshold::objectRecognition() {
     //unid->findRobots(cross);
     yellow->createObject();
     cross->checkForCrosses();
+	// we need to set the post into before doing context
+	// however we may need to set it again after, as context may change
+	// some IDs
+    setFieldObjectInfo(vision->yglp);
+    setFieldObjectInfo(vision->ygrp);
 	vision->fieldLines->afterObjectFragments();
 
     bool ylp = vision->yglp->getWidth() > 0;
