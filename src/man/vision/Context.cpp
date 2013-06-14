@@ -59,7 +59,7 @@ Context::Context(Vision *vis, Threshold* thr, Field* fie)
     allFieldObjects[2] = vision->ygrp;
     allFieldObjects[3] = vision->yglp;
 #ifdef OFFLINE
-    debugIdentifyCorners = false;
+    debugIdentifyCorners = true;
 	debugDangerousBall = false;
 #endif
 
@@ -931,7 +931,17 @@ void Context::lookForFieldCorner(VisualCorner & corner, float l1, float l2) {
             }
         }
     }
-    if (debugIdentifyCorners) {
+	if (field->findSlant() < 0 && field->getPeak() < IMAGE_WIDTH / 3) {
+		corner.setSecondaryShape(RIGHT_GOAL_L);
+		if (debugIdentifyCorners) {
+			cout << "Setting from field slant info" << endl;
+		}
+	} else if (field->findSlant() > 0 && field->getPeak() > 2 * IMAGE_WIDTH / 3) {
+		corner.setSecondaryShape(LEFT_GOAL_L);
+		if (debugIdentifyCorners) {
+			cout << "Setting from field slant info" << endl;
+		}
+	} else if (debugIdentifyCorners) {
         cout << "Lone InnerL, Distance to horizon is " << dist << endl;
         cout << "      " << horizon << " " << corner.getY() << endl;
         cout << "Lengths: " << l1 << " " << l2 << endl;
