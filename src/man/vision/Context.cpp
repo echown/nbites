@@ -931,7 +931,9 @@ void Context::lookForFieldCorner(VisualCorner & corner, float l1, float l2) {
             }
         }
     }
-	if (field->findSlant() < 0 && field->getPeak() < IMAGE_WIDTH / 3) {
+	// the field edge is very useful in this case
+	if (field->findSlant() < 0 && field->getPeak() < IMAGE_WIDTH / 3 &&
+		thresh) {
 		corner.setSecondaryShape(RIGHT_GOAL_L);
 		if (debugIdentifyCorners) {
 			cout << "Setting from field slant info" << endl;

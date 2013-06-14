@@ -1056,6 +1056,14 @@ bool Ball::badSurround(Blob b) {
         }
         return true;
     }
+	if (b.width() * b.height() < 81 &&
+            (static_cast<float>(greens) <
+                    (static_cast<float>(w * h) * GREEN_PERCENT))) {
+        if (BALLDEBUG) {
+            cout << "Nor enough green" << endl;
+        }
+        return true;
+    }
     if (red > orange || (realred > greens && realred > 2 * w &&
             realred > borange * 0.1))  {
         if (BALLDEBUG) {

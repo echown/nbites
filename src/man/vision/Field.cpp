@@ -52,7 +52,7 @@ Field::Field(Vision* vis, Threshold * thr)
 	// funding. - chown
 #ifdef OFFLINE
 	debugFieldEdge = false;
-	debugDrawFieldEdge = true;
+	debugDrawFieldEdge = false;
 	debugHorizon = false;
 #endif
 }
@@ -273,7 +273,6 @@ void Field::findTopEdges(int M) {
                              convex[i].y, ORANGE);
         }
     }
-	cout << "Max is at " << peak << " " << maxLine << endl;
     // calculate the distance to the edge of the field at three key points
     const int quarter = IMAGE_WIDTH / 4;
     const int TOPPING = 30;
