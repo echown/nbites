@@ -2705,10 +2705,12 @@ bool ObjectFragments::locationOk(Blob b)
 	estimate e1 = vision->pose->pixEstimate(trueLeft, trueBottom, 0.0);
 
 	// goal post ought to be close to field edge (except when looking from the side)
-	if (e.dist - e1.dist > 200.0f || e1.dist - e.dist > 200.0f) {
+	if (((e.dist - e1.dist > 200.0f || e1.dist - e.dist > 200.0f) && !greenCheck(b)) ||
+		(e.dist - e1.dist > 400.0f || e1.dist - e.dist > 400.0f)){
 		if (SANITY) {
 			cout << "Robot arm detected" << endl;
 			cout << "Distance from bottom to horizon is: " << (e.dist - e1.dist) << endl;
+			drawBlob(b, RED);
 		}
 		return false;
 	}
