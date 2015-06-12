@@ -70,7 +70,7 @@ Threshold::Threshold(Vision* vis, boost::shared_ptr<NaoPose> posPtr)
     visualHorizonDebug = false;
     debugSelf = false;
     debugShot = false;
-    debugOpenField = true;
+    debugOpenField = false;
     debugEdgeDetection = false;
     debugHoughTransform = false;
     debugRobots = false;
@@ -447,8 +447,9 @@ void Threshold::findGoals(int column, int topEdge) {
 			goodPix = false;
 		}
         if (lastYellow - j > GAP) {
-			yellowOK = false;
+			//yellowOK = false;
             //break;
+			break;
         }
 		// looking to stop scanning
 		if (lastWhite - j > GAP && !yellowOK && !goodPix) {
@@ -494,14 +495,21 @@ void Threshold::findGoals(int column, int topEdge) {
 	if (bottomYellow > topYellow && topYellow < 25) {
 		yellowOK = false;
 	}
-	if (yellowOK && yellows > MINLENGTH) {
-		if (bottomYellow > 3) {
-			vision->drawPoint(column, IMAGE_HEIGHT - 3, BLUE);
+	if (yellows > MINLENGTH) {
+		if (yellowOK) {
+			if (bottomYellow > 2) {
+				vision->drawPoint(column, lastYellow, BLUE);
+				vision->drawPoint(column, firstYellow, BLUE);
+			} else {
+				vision->drawPoint(column, lastYellow, BLACK);
+				vision->drawPoint(column, firstYellow, BLACK);
+			}
 		} else {
-			vision->drawPoint(column, IMAGE_HEIGHT - 3, BLACK);
+			vision->drawPoint(column, lastYellow, RED);
+			vision->drawPoint(column, firstYellow, RED);
 		}
 	}
-    if (yellows > MINLENGTH && yellowOK && bottomYellow > 3) {
+    if (yellows > MINLENGTH && yellowOK && bottomYellow > 2) {
         yellow->newRun(column, lastYellow, firstYellow - lastYellow);
     }
 

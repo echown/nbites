@@ -2698,18 +2698,36 @@ bool ObjectFragments::locationOk(Blob b)
     int spanX = b.width();
     int spanY = b.height();
     int mh = min(horizonLeft, horizonRight);
+	int underHorizon = trueBottom - horizonLeft;
+	int overHorizon = horizonLeft - trueTop;
+
+	estimate e = vision->pose->pixEstimate(trueLeft, horizonLeft, 0.0);
+	estimate e1 = vision->pose->pixEstimate(trueLeft, trueBottom, 0.0);
+
+	// goal post ought to be close to field edge (except when looking from the side)
+	if (((e.dist - e1.dist > 200.0f || e1.dist - e.dist > 200.0f) && !greenCheck(b)) ||
+		(e.dist - e1.dist > 400.0f || e1.dist - e.dist > 400.0f)){
+		if (SANITY) {
+			cout << "Robot arm detected" << endl;
+			cout << "Distance from bottom to horizon is: " << (e.dist - e1.dist) << endl;
+			drawBlob(b, RED);
+		}
+		return false;
+	}
+
+
 	if (trueTop + 10 > mh && trueTop > 3) {
 		if (SANITY) {
 			cout << "Top was less than horizon " << trueTop << " " << mh << endl;
 		}
 		return false;
 	}
-	/*if (spanX > 2 * (trueBottom - horizonLeft)) {
+	if (spanY < IMAGE_HEIGHT / 2 && trueBottom - horizonLeft > horizonLeft - trueTop) {
 		if (SANITY) {
-			cout << "Too much post under the horizon " << spanX << " " << (trueBottom - horizonLeft) << endl;
-			return false;
+			cout << "Too much post under the horizon " << endl;
 		}
-		} */
+		return false;
+	}
 	if (spanY < 50 && !greenCheck(b)) {
 		if (SANITY) {
 			cout << "Short blob without enough green underneath - robot arm?" << endl;
