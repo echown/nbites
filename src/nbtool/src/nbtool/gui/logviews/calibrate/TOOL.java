@@ -127,6 +127,7 @@ public class TOOL implements ActionListener, PropertyChangeListener{
 
         // Initialize the back-end managers and module list
         //sourceManager = new SourceManager();
+		System.out.println("Current file name is "+fileName);
         loadStartColorTable(fileName);
         //dataManager = new DataManager();
         //sourceManager.addSourceListener(dataManager);
@@ -489,6 +490,7 @@ public class TOOL implements ActionListener, PropertyChangeListener{
             colorTable.setSoftColors(toggleSoftColors.isSelected());
             // If they had been editing a table earlier, clear out their
             // undos
+			calibrate.newColorTable();
             calibrate.clearHistory();
             //dataManager.notifyDependants();
         }
@@ -536,6 +538,7 @@ public class TOOL implements ActionListener, PropertyChangeListener{
     public void loadColorTable(String fileName) {
 		System.out.println("Loading color table "+fileName);
         colorTable = new ColorTable(fileName);
+		calibrate.newColorTable();
 
         colorTable.setSoftColors(toggleSoftColors.isSelected());
         // If they had been editing a table earlier, clear out their
@@ -586,6 +589,10 @@ public class TOOL implements ActionListener, PropertyChangeListener{
     public static void main(String[] args) {
         TOOL t = new TOOL();
     }
+
+	public JFrame getFrame() {
+		return mainWindow;
+	}
 
     /**
      * @author Nicholas Dunn

@@ -88,7 +88,7 @@ public class Console {
 
     public String openDialog(String title, String curdir, int file_mode,
             int filter_mode) {
-		return "";
+		//return "";
         /*if (System.getProperty("os.name").contains("Mac")) {
             FileDialog fd = new FileDialog(tool.getFrame(), title);
             if (curdir != null)
@@ -112,24 +112,23 @@ public class Console {
                 return null;
             return new File(fd.getDirectory(), fd.getFile()).getPath();
 
-        } else {
-            JFileChooser chooser = new JFileChooser();
-            if (curdir != null)
-                chooser.setCurrentDirectory(new File(curdir));
+			} else { */
+		JFileChooser chooser = new JFileChooser();
+		if (curdir != null)
+			chooser.setCurrentDirectory(new File(curdir));
 
-            chooser.setDialogTitle(title);
+		chooser.setDialogTitle(title);
 
-            chooser.setFileSelectionMode(filter_mode);
-            int retval;
-            if (file_mode == OPEN)
-                retval = chooser.showOpenDialog(tool.getFrame());
-            else
-                retval = chooser.showSaveDialog(tool.getFrame());
+		chooser.setFileSelectionMode(filter_mode);
+		int retval;
+		if (file_mode == OPEN)
+			retval = chooser.showOpenDialog(tool.getFrame());
+		else
+			retval = chooser.showSaveDialog(tool.getFrame());
 
-            if (retval == JFileChooser.APPROVE_OPTION)
-                return chooser.getSelectedFile().getPath();
-            return null;
-			} */
+		if (retval == JFileChooser.APPROVE_OPTION)
+			return chooser.getSelectedFile().getPath();
+		return null;
     }
 
 }
