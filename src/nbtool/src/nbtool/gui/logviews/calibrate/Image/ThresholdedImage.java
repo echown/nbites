@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.util.LinkedList;
 
 //import TOOL.TOOL;
+import nbtool.gui.logviews.calibrate.TOOL;
 import nbtool.gui.logviews.calibrate.Pair;
 import nbtool.gui.logviews.calibrate.ColorTableUpdate;
 import nbtool.gui.logviews.calibrate.CalibratePanel;
@@ -59,18 +60,20 @@ public class ThresholdedImage extends TOOLImage {
         colorTable = table;
 
         for (int y = 0; y < getHeight(); y++)
-            for (int x = 0; x < getWidth(); x++)
+            for (int x = 0; x < getWidth(); x++) {
                 thresholded[y][x] = colorTable.getColor(image.getYCbCr(x,y));
+			}
     }
     public void thresholdImage() {
         if (colorTable == null) {
-            /*TOOL.CONSOLE.error("ThresholdedImage.thresholdImage() called on" +
-			  " an image without associated color table");*/
+            TOOL.CONSOLE.error("ThresholdedImage.thresholdImage() called on" +
+							   " an image without associated color table");
         }else if(baseImage == null) {
-            /*TOOL.CONSOLE.error("ThresholedImage.thresholdImage() called on" +
-			  "an image without associated base image");*/
-        }else
+            TOOL.CONSOLE.error("ThresholedImage.thresholdImage() called on" +
+			  "an image without associated base image");
+        }else {
             thresholdImage(colorTable, baseImage);
+		}
     }
 
     /*public Estimate pixEstimate(int pixelX, int pixelY,
@@ -95,8 +98,9 @@ public class ThresholdedImage extends TOOLImage {
 
     protected void initImage(BufferedImage img) {
         for (int y = 0; y < getHeight(); y++)
-            for (int x = 0; x < getWidth(); x++)
+            for (int x = 0; x < getWidth(); x++) {
                 img.setRGB(x, y, COLORS[thresholded[y][x]].getRGB());
+			}
     }
 
     public void readByteArray(byte[] rawImage) {
