@@ -47,6 +47,7 @@ import java.awt.event.KeyListener;
 import java.awt.event.KeyEvent;
 import nbtool.gui.logviews.calibrate.GUI.IncrementalSliderParent;
 
+import nbtool.data.Log;
 
 //import TOOL.TOOL;
 
@@ -419,6 +420,7 @@ public class Calibrate implements MouseListener,
         // simply repaint the selector, as underlying image hasn't changed
         selector.repaint();
         // displayer needs to be updated to reflect the new thresholded changes
+		thresholdedImage.thresholdImage();
         displayer.updateImage(thresholdedImage);
         displayer.repaint();
 
@@ -570,6 +572,7 @@ public class Calibrate implements MouseListener,
         //lastly, need to repaint
         // displayer needs to be updated to reflect the new thresholded changes
         displayer.updateImage(thresholdedImage);
+		thresholdedImage.thresholdImage();
         displayer.repaint();
         selector.repaint();
 
@@ -1038,6 +1041,36 @@ public class Calibrate implements MouseListener,
         updateCursor();
     }
 
+	public void useImage(Log raw) {
+		//thresholdedImage = visionState.getThreshImage();
+		YUV422Image img = new YUV422Image(raw.bytes, raw.primaryWidth(), raw.primaryHeight());
+		//img.setImg(raw);
+		rawImage = img;
+		thresholdedImage = new ThresholdedImage(rawImage, colorTable);
+
+		if (overlay == null || overlay.getWidth() != rawImage.getWidth()) {
+			overlay = new ImageOverlay(rawImage.getWidth(), rawImage.getHeight());
+		}
+		imageHeight = rawImage.getHeight();
+		imageWidth = rawImage.getWidth();
+
+		overlay.generateNewEdgeImage(rawImage);
+		selector.updateImage(rawImage);
+		calibratePanel.setSelectorOverlay();
+
+		//visionState.update();
+		calibratePanel.setDisplayerOverlay();
+		displayer.updateImage(thresholdedImage);
+
+		selector.repaint();
+		displayer.repaint();
+	}
+
+	public void newColorTable() {
+		colorTable = tool.getColorTable();
+		thresholdedImage.setColorTable(colorTable);
+	}
+
     public void colorTableChanged(ColorTable source, ColorTableUpdate update) {
 		//ColorTableListener originator) {
         // We don't want to deal with actions that we ourselves propagated;
@@ -1047,8 +1080,11 @@ public class Calibrate implements MouseListener,
         //threshold the full image again
         if(thresholdedImage != null)//if no frame is loaded, don't want to update
             //visionState.update();
+			{
+			}
         //lastly, need to repaint
         selector.repaint();
+		thresholdedImage.thresholdImage();
         displayer.repaint();
     }
 

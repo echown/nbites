@@ -47,7 +47,7 @@ public class NBConstants {
 		IDLE(0),		//No io or IO threads active.  No active SessionHandler.  Ready to start.
 		STARTING(1),	//Setting up IO or threads in a SessionHandler (usually very short)
 		RUNNING(2),		//IO or threads active, in a SessionHandler
-		STOPPING(3);	//IO or threads still active but shutting down.  When the SessionHandler determines 
+		STOPPING(3);	//IO or threads still active but shutting down.  When the SessionHandler determines
 						//all activity has stopped, it will notify idle.
 
 		public final int index;

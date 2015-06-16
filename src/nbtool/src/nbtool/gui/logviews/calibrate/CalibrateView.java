@@ -25,14 +25,18 @@ import nbtool.images.YUYV8888image;
 import nbtool.util.Utility;
 
 
-public class CalibrateView extends ViewParent {
+public final class CalibrateView extends ViewParent {
 	private static final long serialVersionUID = 1L;
-	private TOOL tool;
+	private static TOOL tool;
 
 	public void setLog(Log newlog) {
 		this.log = newlog;
 
 		iv.useImage(Utility.biFromLog(newlog));
+		if (tool == null) {
+			tool = new TOOL();
+		}
+		tool.useImage(newlog);
 	}
 
 	protected void useSize(Dimension s) {
@@ -53,7 +57,7 @@ public class CalibrateView extends ViewParent {
 		sp = new JScrollPane(iv);
 		sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 		sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-		tool = new TOOL();
+		//tool = new TOOL();
 
 		this.add(sp);
 	}

@@ -18,6 +18,7 @@ import nbtool.gui.logviews.calibrate.TOOL;
 import nbtool.gui.logviews.calibrate.ColorTableUpdate;
 import nbtool.gui.logviews.calibrate.vision.Vision;
 
+
 /**
  *
  * Color table class that holds a three-dimensional array representing
@@ -32,16 +33,28 @@ import nbtool.gui.logviews.calibrate.vision.Vision;
  * if we just got from 0 - 127 in each of the Y,U,V channels and do no
  * bitshifting.
  *
+ ******************************* NOTE ********************************
+ *
+ * The table DOES NOT store the values in y,u,v order though. They are stored
+ * in u,v,y order to reflect the way they are thresholded. Since Y is the most
+ * frequently changing channel, it is in the least significant position.
+ *
+ * ********************************************************************
+ *
  * @author Joho Strom
  * @author Nicholas Dunn modified for undo/redo functionality.
+ * @author Jack Morrison changed yuv ordering to uvy ordering
+ * @author Wils Dawson changed load/save paths to appropriate destination.
  * @see ColorTableUpdate, Calibrate, ThresholdedImage
  * @version 1.0
  */
 public class ColorTable {
     //default table locations,
     //which get statically updated each time we save a new table
-    public static String LOAD_TABLE_PATH = System.getProperty("user.dir");
-    public static String SAVE_TABLE_PATH = System.getProperty("user.dir");
+    public static String LOAD_TABLE_PATH = System.getProperty("user.dir")+
+											"/../../data/tables";
+    public static String SAVE_TABLE_PATH = System.getProperty("user.dir")+
+											"/../../data/tables";
 
     public static final byte GREEN = Vision.GREEN;
     public static final byte BLUE = Vision.BLUE;
@@ -54,6 +67,16 @@ public class ColorTable {
     public static final byte RED = Vision.RED;
     public static final byte WHITE = Vision.WHITE;
 	public static final byte GREY = Vision.GREY;
+    public static final byte NAVY = Vision.NAVY;
+
+    public static final byte BIT_GREY = 0x00;
+    public static final byte BIT_WHITE = 0x01;
+    public static final byte BIT_GREEN = 0x02;
+    public static final byte BIT_BLUE = 0x04;
+    public static final byte BIT_YELLOW = 0x08;
+    public static final byte BIT_ORANGE = 0x10;
+    public static final byte BIT_RED = 0x20;
+    public static final byte BIT_NAVY = 0x40;
 
 
     public static final int FAIL = 1;
@@ -143,7 +166,7 @@ public class ColorTable {
 
             String path = TOOL.CONSOLE.
                 promptFileOpen("Existing Color Table Location and Name",
-				LOAD_TABLE_PATH);
+                               LOAD_TABLE_PATH);
 
             if(path != null){
                 loadDefFromFile(path, yMax,uMax,vMax);
@@ -154,11 +177,11 @@ public class ColorTable {
                 throw new IOException("couldn't load a colorTable");
             }
         }else if (type==EMPTY){
-            colorTable = new byte[yMax][uMax][vMax];
+            colorTable = new byte[uMax][vMax][yMax];
 
             TOOL.CONSOLE.message("Created new blank color table of " +
-                                 "dimensions[" +yMax + "][" + uMax + "][" +
-                                 vMax + "]");
+                                 "dimensions[" +uMax + "][" + vMax + "][" +
+                                 yMax + "]");
             // Takes care of updating the this.yMax variables, as well as
             // this.yShift etc.
             updateDimensions();
@@ -199,13 +222,14 @@ public class ColorTable {
 
         undoStack = new LinkedList <LinkedList <ColorTableUpdate> >();
         redoStack = new LinkedList <LinkedList <ColorTableUpdate> >();
+		//printTable();
     }
 
     /**
      * CONSTRUCTOR: new table with a distinct shift set
      */
     public ColorTable(int yMax, int uMax, int vMax){
-        String path = ""; TOOL.CONSOLE.promptFileOpen(
+        String path = TOOL.CONSOLE.promptFileOpen(
                                                   "Open OLD Color Table Location Size = (" + Vision.YMAX + ","
                                                   + Vision.UMAX + "," + Vision.VMAX + ")",
                                                   LOAD_TABLE_PATH);
@@ -272,12 +296,12 @@ public class ColorTable {
                 }
 
                 else if ((color == ORANGE && oldColor == YELLOW) ||
-                         (color == YELLOW && oldColor == ORANGE) ||
+						 // (color == YELLOW && oldColor == ORANGE) ||
                          (color == ORANGE && oldColor == ORANGEYELLOW) ||
                          (color == YELLOW && oldColor == ORANGEYELLOW)) {
+					//System.out.println(color+" "+oldColor);
                     newColor = ORANGEYELLOW;
-                }
-
+                    }
                 setColor(thisPixel, newColor);
             }
         }
@@ -349,7 +373,7 @@ public class ColorTable {
             cur.mkdirs();
 
             TOOL.CONSOLE.println("Auto saving after " + moveCounter +
-			  " moves.");
+                                 " moves.");
             // hours/minutes/seconds am/pm .table.mtb
             saveColorTable(saveDir + now("h:mm:ssa") +
                            ".table.mtb");
@@ -404,9 +428,9 @@ public class ColorTable {
         // We limit our "stack" size by eliminating the oldest entry
         // when we have too many
         if (redoStack.size() == MAX_NUM_REDOS) {
-            TOOL.CONSOLE.println("Redo stack reached size " +
-								 redoStack.size());
-            TOOL.CONSOLE.println("Removing: " + redoStack.getFirst());
+            //TOOL.CONSOLE.println("Redo stack reached size " +
+            //redoStack.size());
+            //TOOL.CONSOLE.println("Removing: " + redoStack.getFirst());
             undoStack.removeFirst();
         }
         redoStack.addLast(change);
@@ -431,9 +455,9 @@ public class ColorTable {
     /** Pushes a single change to stack */
     public void pushUndo(LinkedList <ColorTableUpdate> change) {
         if (undoStack.size() == MAX_NUM_UNDOS) {
-            TOOL.CONSOLE.println("Undo stack reached size " +
-								 undoStack.size());
-            TOOL.CONSOLE.println("Removing: " + undoStack.getFirst());
+            //TOOL.CONSOLE.println("Undo stack reached size " +
+            // undoStack.size());
+            //TOOL.CONSOLE.println("Removing: " + undoStack.getFirst());
             undoStack.removeFirst();
         }
         undoStack.addLast(change);
@@ -549,29 +573,85 @@ public class ColorTable {
     }
 
 
+    // April 2011 - with the switch to bits, rather than just rewrite the whole
+    // tool (which would take forever) we're just going to have the table class
+    // wrap all of the changes and hope the other classes don't manipulate the
+    // table directly themselves
+
+    public byte convertColorFromBits(byte col) {
+        if ((col & BIT_ORANGE) > 0) {
+            if ((col & BIT_RED) > 0) {
+                return ORANGERED;
+            }
+            if ((col & BIT_YELLOW) > 0) {
+                return ORANGEYELLOW;
+            }
+            return ORANGE;
+        }
+        if ((col & BIT_GREEN) > 0) {
+            if ((col & BIT_BLUE) > 0) {
+                return BLUEGREEN;
+            }
+            return GREEN;
+        }
+        if ((col & BIT_BLUE) > 0) {
+            return BLUE;
+        }
+        if ((col & BIT_YELLOW) > 0) {
+            if ((col & BIT_WHITE) > 0) {
+                return YELLOWWHITE;
+            }
+            return YELLOW;
+        }
+        if ((col & BIT_WHITE) > 0) {
+            return WHITE;
+        }
+        if ((col & BIT_RED) > 0) {
+            return RED;
+        }
+        return GREY;
+    }
+
+    public byte convertFromOldColor(byte color) {
+        switch (color) {
+        case GREY: return BIT_GREY;
+        case GREEN: return BIT_GREEN;
+        case WHITE: return BIT_WHITE;
+        case YELLOW: return BIT_YELLOW;
+        case BLUE: return BIT_BLUE;
+        case ORANGE: return BIT_ORANGE;
+        case NAVY: return BIT_NAVY;
+        case RED: return BIT_RED;
+        case ORANGERED: return BIT_ORANGE | BIT_RED;
+        case ORANGEYELLOW: return BIT_ORANGE | BIT_YELLOW;
+        case YELLOWWHITE: return BIT_YELLOW | BIT_WHITE;
+        case BLUEGREEN: return BIT_BLUE | BIT_GREEN;
+        default: return BIT_GREY;
+        }
+    }
 
     //returns the color at a given pixel combination, specified by array
     public byte getColor(int[] pixel) {
-        return colorTable[pixel[Y ]>>yShift]
-            [pixel[Cb]>>uShift]
-            [pixel[Cr]>>vShift];
+        return convertColorFromBits(colorTable[pixel[Cb ]>>uShift]
+                                    [pixel[Cr]>>vShift]
+                                    [pixel[Y]>>yShift]);
     }
 
-    public byte getColor(int c1, int c2, int c3) {
-        return colorTable[c1 >> yShift]
-            [c2 >> uShift]
-            [c3 >> vShift];
+    public byte getColor(int _y, int _u, int _v) {
+        return convertColorFromBits(colorTable[_u >> uShift]
+                                    [_v >> vShift]
+                                    [_y >> yShift]);
     }
 
     /** Gets color for given y,u,v, value without bitshifting */
     public byte getRawColor(int[] pixel) {
-        return colorTable[pixel[Y ]]
-            [pixel[Cb]]
-            [pixel[Cr]];
+        return convertColorFromBits(colorTable[pixel[Cb ]]
+                                    [pixel[Cr]]
+                                    [pixel[Y]]);
     }
 
-    public byte getRawColor(int c1, int c2, int c3) {
-        return colorTable[c1][c2][c3];
+    public byte getRawColor(int _y, int _u, int _v) {
+        return convertColorFromBits(colorTable[_u][_v][_y]);
     }
 
     public boolean isModified(){
@@ -579,15 +659,17 @@ public class ColorTable {
     }
 
     public void setColor(int[] pixel, byte color) {
-        colorTable[pixel[Y ] >> yShift]
-            [pixel[Cb] >> uShift]
-            [pixel[Cr] >> vShift] = color;
+        color = convertFromOldColor(color);
+        colorTable[pixel[Cb ] >> uShift]
+            [pixel[Cr] >> vShift]
+            [pixel[Y] >> yShift] |= color;
     }
 
     public void setRawColor(int[] pixel, byte color) {
-        colorTable[pixel[Y ]]
-            [pixel[Cb]]
-            [pixel[Cr]] = color;
+        color = convertFromOldColor(color);
+        colorTable[pixel[Cb ]]
+            [pixel[Cr]]
+            [pixel[Y]] = color;
     }
 
     //dynamically 'saves', or 'saves as' depending on if
@@ -608,7 +690,7 @@ public class ColorTable {
     //forces a dialog to ask where to save
     public int saveColorTableAs(){
         String path = TOOL.CONSOLE.promptFileSave("Save Color Table As:",
-												  SAVE_TABLE_PATH);
+                                                  SAVE_TABLE_PATH);
 
         return saveColorTable(path);
     }
@@ -673,7 +755,7 @@ public class ColorTable {
         }
 
 
-        byte[][][] newTable = new byte[_yMax][_uMax][_vMax];
+        byte[][][] newTable = new byte[_uMax][_vMax][_yMax];
 
         byte[] buffer = new byte[_yMax*_uMax*_vMax];
         int byteIndex = 0;
@@ -688,10 +770,10 @@ public class ColorTable {
         }
 
         //parse the byte buffer into the new table
-        for(int y=0; y<_yMax; y++) {
-            for(int u=0; u<_uMax; u++) {
-                for(int v=0; v<_vMax; v++){
-                    newTable[y][u][v] = buffer[byteIndex];
+        for(int u=0; u<_uMax; u++) {
+            for(int v=0; v<_vMax; v++) {
+                for(int y=0; y<_yMax; y++){
+                    newTable[u][v][y] = buffer[byteIndex];
                     ++byteIndex;
                 }
             }
@@ -711,7 +793,7 @@ public class ColorTable {
         double elapsedTime =
             (double)(System.currentTimeMillis() - startTime)/1000;
         TOOL.CONSOLE.println(byteCount/1024 + " KBs read in " +
-		  elapsedTime+"Seconds");
+                             elapsedTime+"Seconds");
 
         updateDimensions();
 
@@ -787,10 +869,10 @@ public class ColorTable {
 
     public void writeByteArray(byte[] dest){
         int byteIndex = 0;
-        for(int y=0; y<yMax; y++)
-            for(int u=0; u<uMax; u++)
-                for(int v=0; v<vMax; v++){
-                    dest[byteIndex] = colorTable[y][u][v];
+        for(int u=0; u<uMax; u++)
+            for(int v=0; v<vMax; v++)
+                for(int y=0; y<yMax; y++){
+                    dest[byteIndex] = colorTable[u][v][y];
                     byteIndex++;
                 }
     }
@@ -858,21 +940,24 @@ public class ColorTable {
      */
     public void scaleUp(int yScalar, int uScalar, int vScalar){
         modified = true;
-        TOOL.CONSOLE.println("Input Y-Dimension:"+yMax+"U-Dimension"+uMax+"vDimension"+vMax+":");
-        TOOL.CONSOLE.println("Input Y-scalar:"+yScalar+"U-Scalar"+uScalar+"V-Scalar"+vScalar+":");
-        byte[][][] newTable =  new byte[yMax*yScalar][uMax*uScalar][vMax*vScalar];
-        TOOL.CONSOLE.println("TEST Y-Dimension:"+yMax+"U-Dimension"+uMax+"vDimension"+vMax+":");
+        TOOL.CONSOLE.println("Input Y-Dimension:"+yMax+"U-Dimension"
+							 +uMax+"vDimension"+vMax+":");
+        TOOL.CONSOLE.println("Input Y-scalar:"+yScalar+"U-Scalar"
+							 +uScalar+"V-Scalar"+vScalar+":");
+        byte[][][] newTable =  new byte[uMax*uScalar][vMax*vScalar][yMax*yScalar];
+        TOOL.CONSOLE.println("TEST Y-Dimension:"+yMax+"U-Dimension"+
+							 uMax+"vDimension"+vMax+":");
 
         //scan the old table under y,u,v
-        for(int y = 0; y < yMax; y++){
-            for(int u = 0; u < uMax; u++){
-                for(int v = 0; v < vMax; v++){
+        for(int u = 0; u < uMax; u++){
+            for(int v = 0; v < vMax; v++){
+                for(int y = 0; y < yMax; y++){
 
                     //for each entry in the old table, we extrapolate it according to the scalar variable
-                    for(int a = y*yScalar; a < y*yScalar+yScalar; a++){
-                        for(int b = u*uScalar; b <u*uScalar+uScalar; b++){
-                            for(int c = v*vScalar; c <v*vScalar+vScalar; c++){
-                                newTable[a][b][c] = colorTable[y][u][v];
+                    for(int a = u*uScalar; a < u*uScalar+uScalar; a++){
+                        for(int b = v*vScalar; b <v*vScalar+vScalar; b++){
+                            for(int c = y*yScalar; c <y*yScalar+yScalar; c++){
+                                newTable[a][b][c] = colorTable[u][v][y];
                             }
                         }
                     }
@@ -911,13 +996,13 @@ public class ColorTable {
         int newUDimension = uMax/uDownScale;
         int newVDimension = vMax/vDownScale;
 
-        byte[][][] newTable = new byte[newYDimension][newUDimension]
-            [newVDimension];
+        byte[][][] newTable = new byte[newUDimension][newVDimension]
+            [newYDimension];
 
         //loops through the new, small table
-        for(int y = 0; y < newYDimension; y++){
-            for(int u = 0; u < newUDimension; u++){
-                for(int v = 0; v < newVDimension; v++){
+        for(int u = 0; u < newUDimension; u++){
+            for(int v = 0; v < newVDimension; v++){
+                for(int y = 0; y < newYDimension; y++){
 
                     //creates an array that will help determine the mode of
                     //values in the old table
@@ -927,9 +1012,9 @@ public class ColorTable {
                     //searches from that spot forward, amount determined
                     //by downscale
                     //loops through the section of the large table to compress
-                    for(int i = y*yDownScale; i <y*yDownScale+yDownScale; i++){
-                        for(int j=u*uDownScale; j<u*uDownScale+uDownScale;j++){
-                            for(int k=v*vDownScale;k<v*vDownScale+vDownScale;k++){
+                    for(int i = u*uDownScale; i <u*uDownScale+uDownScale; i++){
+                        for(int j=v*vDownScale; j<v*vDownScale+vDownScale;j++){
+                            for(int k=y*yDownScale;k<y*yDownScale+yDownScale;k++){
 
                                 //increments a counter in corresponding array
                                 //with the byte value at (i,j,k)
@@ -953,7 +1038,7 @@ public class ColorTable {
                     }
                     //makes sure the color appears in a non-random amount
                     if(mostCommon > MIN_OCCURENCES_PRESENT){
-                        newTable[y][u][v] = (byte)mostCommonIndex;
+                        newTable[u][v][y] = (byte)mostCommonIndex;
                     }
                 }
             }
@@ -963,7 +1048,7 @@ public class ColorTable {
         updateDimensions();
 
         TOOL.CONSOLE.println("Created a new table with dimensions Y-Dimension:"
-		  +newYDimension+"U-Dimension"+newUDimension+"vDimension"+newVDimension+":");
+                             +newYDimension+"U-Dimension"+newUDimension+"vDimension"+newVDimension+":");
 
     }
 
@@ -975,13 +1060,13 @@ public class ColorTable {
      * modifying a value in the table.
      */
     public void updateDimensions() {
-        yMax = colorTable.length;
-        uMax = colorTable[0].length;
-        vMax = colorTable[0][0].length;
+        uMax = colorTable.length;
+        vMax = colorTable[0].length;
+        yMax = colorTable[0][0].length;
 
-        yShift = (int)Math.round(Math.log(256/yMax)/Math.log(2));
-        uShift = (int)Math.round(Math.log(256/uMax)/Math.log(2));
-        vShift = (int)Math.round(Math.log(256/vMax)/Math.log(2));
+        uShift = (int)Math.round(Math.log(256/yMax)/Math.log(2));
+        vShift = (int)Math.round(Math.log(256/uMax)/Math.log(2));
+        yShift = (int)Math.round(Math.log(256/vMax)/Math.log(2));
     }
 
     public int getYDimension(){
@@ -1038,12 +1123,12 @@ public class ColorTable {
 
         //We look through all the entries in the color table,
         // except those within BOX of the edge
-        for (int y = BOX; y < yMax - BOX; y++) {
-            for (int cr = BOX; cr < uMax - BOX; cr++) {
-                for (int cb = BOX; cb < vMax - BOX; cb++) {
+        for (int cr = BOX; cr < uMax - BOX; cr++) {
+            for (int cb = BOX; cb < vMax - BOX; cb++) {
+                for (int y = BOX; y < yMax - BOX; y++) {
 
                     //gets the entry we are considering filling
-                    int target_color = colorTable[y][cr][cb];
+                    int target_color = colorTable[cr][cb][y];
 
                     if(target_color != Vision.GREY){
                         continue; //only overwrite grey pixels
@@ -1057,12 +1142,12 @@ public class ColorTable {
                     int maxVal = 0;//stores the frequency of that color
 
                     //now look through all the pixels BOX away from the target
-                    for(int ii = y-BOX; ii <= y +BOX; ii++){
-                        for(int jj = cr -BOX; jj <= cr + BOX; jj++ ){
-                            for(int kk = cb -BOX; kk <= cb+BOX; kk++){
+                    for(int ii = cr-BOX; ii <= cr +BOX; ii++){
+                        for(int jj = cb -BOX; jj <= cb + BOX; jj++ ){
+                            for(int kk = y -BOX; kk <= y+BOX; kk++){
 
                                 //skip the center pixe, since it is the target
-                                if(y==ii && cr == jj && cb ==kk){
+                                if(cr==ii && cb == jj && y ==kk){
                                     continue;
                                 }
 
@@ -1205,9 +1290,9 @@ public class ColorTable {
 
     public void fillTable(){
         //fill the table with bogus values
-        for(int i = 0; i < yMax; i++){
-            for(int j = 0; j < uMax; j++){
-                for(int k = 0; k <  vMax; k++){
+        for(int i = 0; i < uMax; i++){
+            for(int j = 0; j < vMax; j++){
+                for(int k = 0; k <  yMax; k++){
                     colorTable[i][j][k] = (byte)(k+1);
                 }
             }
@@ -1247,16 +1332,23 @@ public class ColorTable {
     }
 
     public void printTable(){
-
+		int count = 0;
         for(int y = 0; y < yMax; y++){
             TOOL.CONSOLE.println("############"+y+"############");
+			count = 0;
             for(int u = 0; u < uMax; u++){
                 for(int v = 0; v < vMax; v++){
-                    TOOL.CONSOLE.print(colorTable[y][u][v]+" ");
+					if (colorTable[u][v][y] != 0) {
+						TOOL.CONSOLE.print(colorTable[u][v][y]+" ");
+						count++;
+					}
 
                 }
-                TOOL.CONSOLE.println();
             }
+			if (count > 0) {
+				TOOL.CONSOLE.println();
+			}
+
         }
 
     }

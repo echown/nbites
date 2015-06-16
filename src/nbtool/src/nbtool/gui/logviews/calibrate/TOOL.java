@@ -6,6 +6,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
+import java.awt.image.BufferedImage;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -22,6 +23,8 @@ import TOOL.Data.DataModule; */
 import nbtool.gui.logviews.calibrate.console.Console;
 import nbtool.gui.logviews.calibrate.GUI.MultiTabbedPane;
 import nbtool.gui.logviews.calibrate.image.*;
+
+import nbtool.data.Log;
 
 import java.util.prefs.*;
 import java.awt.event.WindowListener;
@@ -450,6 +453,8 @@ public class TOOL implements ActionListener, PropertyChangeListener{
             colorTable.setSoftColors(toggleSoftColors.isSelected());
             // If they had been editing a table earlier, clear out their undos
             calibrate.clearHistory();
+			// no longer have data managers so . . .
+			calibrate.newColorTable();
         }
         catch(IOException  e){
             return;
@@ -514,7 +519,7 @@ public class TOOL implements ActionListener, PropertyChangeListener{
      * This method takes in a file name and tries to load a color table from it at startup
      **/
     public void loadStartColorTable(String fileName) {
-
+		System.out.println("Loading start color table "+fileName);
         colorTable = new ColorTable(fileName);
     }
 
@@ -529,6 +534,7 @@ public class TOOL implements ActionListener, PropertyChangeListener{
      * This method takes in a file name and tries to load a color table from it
      **/
     public void loadColorTable(String fileName) {
+		System.out.println("Loading color table "+fileName);
         colorTable = new ColorTable(fileName);
 
         colorTable.setSoftColors(toggleSoftColors.isSelected());
@@ -572,6 +578,10 @@ public class TOOL implements ActionListener, PropertyChangeListener{
     public void saveDirectoryPrefs(Preferences prefs) {
         prefs.put(DEFAULT_WC_DIRECTORY_STRING, wcLastDirectory);
     }
+
+	public void useImage(Log raw) {
+		calibrate.useImage(raw);
+	}
 
     public static void main(String[] args) {
         TOOL t = new TOOL();

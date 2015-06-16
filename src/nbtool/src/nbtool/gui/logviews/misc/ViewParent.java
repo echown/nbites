@@ -17,15 +17,15 @@ import nbtool.data.Log;
 public abstract class ViewParent extends JPanel {
 	private static final long serialVersionUID = 1L;
 	protected Log log;
-	
+
 	//Use newlog to populate view.
 	public abstract void setLog(Log newlog);
 	//Override if necessary.
 	public void alsoSelected(ArrayList<Log> also){}
-	
+
 	//Override if you want it to load in parallel.
 	public static Boolean shouldLoadInParallel(){return false;}
-	
+
 	//Set up log independent objects here.
 	//Please call the super (i.e., ViewParent() ) in case this ever becomes non-empty...
 	public ViewParent() {
