@@ -310,7 +310,7 @@ public class DebugImageView extends VisionView implements
 
         b = "ball";
 
-        for(i=0; ;i++)
+        for(int i=0; ;i++)
 	    {
 		SExpr ball = tree.find(b+i);
 		if (!ball.exists()){

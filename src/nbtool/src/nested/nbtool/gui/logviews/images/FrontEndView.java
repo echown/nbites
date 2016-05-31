@@ -23,7 +23,7 @@ import nbtool.gui.logviews.misc.ViewParent;
 import nbtool.gui.logviews.misc.VisionView;
 import nbtool.io.CommonIO.IOFirstResponder;
 import nbtool.io.CommonIO.IOInstance;
-
+import nbtool.util.Debug;
 import nbtool.util.Utility;
 import java.util.Vector;
 
@@ -40,9 +40,9 @@ public class FrontEndView extends VisionView {
     private BufferedImage blackImage;
     private BufferedImage segmentedImage;
 
-    private Y8image green8;
-    private Y8image white8;
-    private Y8image black8;
+    private Y8Image green8;
+    private Y8Image white8;
+    private Y8Image black8;
 
     // Save button
     private JButton saveButton;
@@ -387,20 +387,21 @@ public class FrontEndView extends VisionView {
             this.yImage = yImg.toBufferedImage();
         }
 
-<<<<<<< HEAD:src/nbtool/src/nested/nbtool/gui/logviews/images/FrontEndView.java
         if (this.getWhiteBlock() != null) {
-            Y8Image white8 = new Y8Image(width, height, this.getWhiteBlock().data);
+            white8 = new Y8Image(width, height, this.getWhiteBlock().data);
             this.whiteImage = white8.toBufferedImage();
         }
 
         if (this.getGreenBlock() != null) {
-        	Y8Image green8 = new Y8Image(width, height, this.getGreenBlock().data);
+        	green8 = new Y8Image(width, height, this.getGreenBlock().data);
             this.greenImage = green8.toBufferedImage();
+        } else {
+        	Debug.error("no green block!");
         }
 
         if (this.getOrangeBlock() != null) {
-        	Y8Image orange8 = new Y8Image(width, height, this.getOrangeBlock().data);
-            this.blackImage = orange8.toBufferedImage();
+        	black8 = new Y8Image(width, height, this.getOrangeBlock().data);
+            this.blackImage = black8.toBufferedImage();
         }
 
         if (this.getSegmentedBlock() != null) {
