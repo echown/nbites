@@ -325,7 +325,7 @@ public class DebugImageView extends VisionView implements
 				}
 			}
 
-        graph.setColor(Color.RED);
+        graph.setColor(Color.BLACK);
 
         b = "ball";
 

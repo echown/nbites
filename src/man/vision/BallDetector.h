@@ -127,8 +127,6 @@ namespace man {
 			void setDebugBall(bool debug) {debugBall = debug;}
 #endif
 		private:
-			Connectivity blobber;
-            Connectivity blobber2;
 			FieldHomography* homography;
 			Field* field;
 			bool topCamera;
