@@ -122,8 +122,8 @@ namespace man {
 			// For tool
 #ifdef OFFLINE
 			const std::vector<Ball>& getBalls() const { return candidates; }
-			Connectivity* getBlobber() { return &blobber; }
-            Connectivity* getBlobber2() { return &blobber2; }
+			const std::vector<Spot>& getWhiteSpots() { return debugWhiteSpots; }
+			const std::vector<Spot>& getBlackSpots() { return debugBlackSpots; }
 			void setDebugBall(bool debug) {debugBall = debug;}
 #endif
 		private:
@@ -136,6 +136,8 @@ namespace man {
 			int height;
 			int currentX, currentY;
             std::vector<Edge> goodEdges;
+			std::vector<Spot> debugBlackSpots;
+			std::vector<Spot> debugWhiteSpots;
 
 			DebugImage debugDraw;
 			ImageLiteU8 whiteImage, greenImage, blackImage;

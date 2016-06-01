@@ -13,6 +13,7 @@
 #include "vision/VisionModule.h"
 #include "vision/FrontEnd.h"
 #include "vision/Homography.h"
+#include "vision/Spots.h"
 #include "ParamReader.h"
 #include "NBMath.h"
 
@@ -117,18 +118,25 @@ SExpr getSExprFromSavedParams(VisionColor color, std::string sexpPath, bool top)
 
 SExpr treeFromSpot(man::vision::Spot & b, int width, int height)
 {
-    SExpr x(b.ix() + width / 2);
-    SExpr y(-b.iy() + height / 2);
+	SExpr xLo(b.xLo() + width / 2);
+	SExpr xHi(b.xHi() + width / 2);
+	SExpr yLo(b.yLo() + height / 2);
+	SExpr yHi(b.yHi() + height / 2);
+
+    SExpr x(b.rawX);
+    SExpr y(b.rawY);
     SExpr p = SExpr::list({x, y});
+	SExpr ul = SExpr::list({xLo, yHi});
+	SExpr lr = SExpr::list({xHi, yLo});
 
     SExpr center = SExpr::keyValue("center", p);
-    SExpr area = SExpr::keyValue("area", 0.1f);
-    SExpr count = SExpr::keyValue("count", 1);
-    SExpr len1 = SExpr::keyValue("len1", b.innerDiam);
-    SExpr len2 = SExpr::keyValue("len2", b.innerDiam);
-    SExpr ang1 = SExpr::keyValue("ang1", 0);
-    SExpr ang2 = SExpr::keyValue("ang2", 0);
-    SExpr toRet = SExpr::list({center, area, count, len1, len2, ang1, ang2});
+    SExpr topleft = SExpr::keyValue("topLeft", ul);
+    SExpr lowerright = SExpr::keyValue("lowerRight", lr);
+    SExpr innerdiam = SExpr::keyValue("inner", b.innerDiam);
+    SExpr outerdiam = SExpr::keyValue("outer", b.outerDiam);
+    SExpr spottype = SExpr::keyValue("spottype", b.spotType);
+    SExpr toRet = SExpr::list({center, topleft, lowerright, innerdiam, outerdiam,
+				spottype});
 
     return toRet;
 }
@@ -516,8 +524,12 @@ NBCROSS_FUNCTION(Vision, false, nbl::SharedConstants::LogClass_Tripoint())
     man::vision::BallDetector* detector = module.getBallDetector(topCamera);
 
     std::vector<man::vision::Ball> balls = detector->getBalls();
+	std::vector<man::vision::Spot> whiteSpots = detector->getWhiteSpots();
+	std::vector<man::vision::Spot> blackSpots = detector->getBlackSpots();
 
     SExpr allBalls;
+	SExpr allWhite;
+	SExpr allBlack;
     int count = 0;
     for (auto i=balls.begin(); i!=balls.end(); i++) {
         SExpr ballTree = treeFromBall(*i, width, height);
@@ -525,8 +537,27 @@ NBCROSS_FUNCTION(Vision, false, nbl::SharedConstants::LogClass_Tripoint())
         allBalls.append(next);
         count++;
     }
+	count = 0;
+    for (auto i=whiteSpots.begin(); i!=whiteSpots.end(); i++) {
+        SExpr spotTree = treeFromSpot(*i, width, height);
+        SExpr next = SExpr::keyValue("whiteSpot" + std::to_string(count), spotTree);
+        allWhite.append(next);
+        count++;
+    }
+	count = 0;
+    for (auto i=blackSpots.begin(); i!=blackSpots.end(); i++) {
+        SExpr spotTree = treeFromSpot(*i, width, height);
+        SExpr next = SExpr::keyValue("darkSpot" + std::to_string(count), spotTree);
+        allBlack.append(next);
+        count++;
+    }
 
-    retVec.push_back(Block{allBalls.serialize(), json::Object{}, SharedConstants::SexprType_DEFAULT(), "nbcross-Vision-ball", 0, 0});
+    retVec.push_back(Block{allBalls.serialize(), json::Object{},
+				SharedConstants::SexprType_DEFAULT(), "nbcross-Vision-ball", 0, 0});
+    retVec.push_back(Block{allWhite.serialize(), json::Object{},
+				SharedConstants::SexprType_DEFAULT(), "nbcross-Vision-spot-white", 0, 0});
+    retVec.push_back(Block{allBlack.serialize(), json::Object{},
+				SharedConstants::SexprType_DEFAULT(), "nbcross-Vision-spot-black", 0, 0});
 
     //---------------
     // Center Circle

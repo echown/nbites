@@ -450,7 +450,6 @@ void BallDetector::makeBall(Spot spot, double cameraHeight, double conf,
     double bIY = -spot.iy() + height / 2;
     double x_rel, y_rel;
     bool belowHoriz = homography->fieldCoords(bIX, bIY, x_rel, y_rel);
-    std::cout << "x " << x_rel << " " << y_rel << " " << bIX << std::endl;
     Ball b(spot, x_rel, -1 * y_rel, cameraHeight, height,
            width, topCamera, spot.ix() + width / 2, -spot.iy() + height / 2, conf);
     _best = b;
@@ -552,7 +551,6 @@ bool BallDetector::filterWhiteSpot(Spot spot,
         for (int j = topY; j < bottomY; j++) {
             getColor(i, j);
             if (isGreen()) {
-                debugDraw.drawPoint(i, j, RED);
                 return false;
             }
             if (!isWhite()) {
@@ -569,6 +567,11 @@ bool BallDetector::filterWhiteSpot(Spot spot,
 bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
                             EdgeList& edges)
 {
+	int WHITE_CANDIDATE = 1;
+	int WHITE_REJECT = 2;
+	int DARK_CANDIDATE = 3;
+	int DARK_REJECT = 4;
+
     Ball reset;
     _best = reset;
     width = white.width();
@@ -582,9 +585,12 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
 
     // Then we are going to filter out all of the blobs that obviously
     // aren't part of the ball
-    std::vector<std::pair<int,int>> blackBlobs;
-    std::vector<Spot> actualBlackBlobs;
-    std::vector<Spot> actualWhiteSpots;
+    std::vector<std::pair<int,int>> blackSpots;
+	std::vector<Spot> actualBlackSpots;
+	std::vector<Spot> actualWhiteSpots;
+
+	debugBlackSpots.clear();
+	debugWhiteSpots.clear();
 
     SpotDetector spots;
     spots.darkSpot(true);
@@ -601,6 +607,8 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
         // convert back to raw coordinates
         int midX = (*i).ix() + width / 2;
         int midY = -(*i).iy() + height / 2;
+		(*i).rawX = midX;
+		(*i).rawY = midY;
         int xLo = (*i).xLo() + width / 2;
         int xHi = (*i).xHi() + width / 2;
         int yLo = (*i).yLo() + height / 2;
@@ -610,11 +618,16 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
         if (!(isWhite() || isGreen()) &&
             (!topCamera || midY > field->horizonAt(midX))) {
             if (filterBlackSpots((*i))) {
-				debugDraw.drawBox(xLo, xHi, yHi, yLo, ORANGE);
-				blackBlobs.push_back(std::make_pair(midX, midY));
-				actualBlackBlobs.push_back((*i));
+				//debugDraw.drawBox(xLo, xHi, yHi, yLo, ORANGE);
+				blackSpots.push_back(std::make_pair(midX, midY));
+				actualBlackSpots.push_back((*i));
+				(*i).spotType = DARK_CANDIDATE;
 			} else {
-				debugDraw.drawBox(xLo, xHi, yHi, yLo, BLUE);
+				//debugDraw.drawBox(xLo, xHi, yHi, yLo, BLUE);
+				(*i).spotType = DARK_REJECT;
+			}
+			if (debugBall) {
+				debugBlackSpots.push_back((*i));
 			}
         }
     }
@@ -634,21 +647,28 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
     for (auto i = whitespotter.begin(); i != whitespotter.end(); i++) {
         int midX = (*i).ix() + width / 2;
         int midY = -(*i).iy() + height / 2;
+		(*i).rawX = midX;
+		(*i).rawY = midY;
         int xLo = (*i).xLo() + width / 2;
         int xHi = (*i).xHi() + width / 2;
         int yLo = (*i).yLo() + height / 2;
         int yHi = (*i).yHi() + height / 2;
-        if (filterWhiteSpot((*i), blackBlobs)) {
-            debugDraw.drawBox(xLo, xHi, yHi, yLo, RED);
+        if (filterWhiteSpot((*i), blackSpots)) {
+            //debugDraw.drawBox(xLo, xHi, yHi, yLo, RED);
             actualWhiteSpots.push_back((*i));
             makeBall((*i), cameraHeight, 0.75, foundBall, false);
             foundBall = true;
+			(*i).spotType = WHITE_CANDIDATE;
         } else if (!topCamera || yLo > field->horizonAt(xLo)) {
-            debugDraw.drawBox(xLo, xHi, yHi, yLo, WHITE);
+            //debugDraw.drawBox(xLo, xHi, yHi, yLo, WHITE);
+			(*i).spotType = WHITE_REJECT;
         }
+		if (debugBall) {
+			debugWhiteSpots.push_back((*i));
+		}
     }
 
-    if (findCorrelatedBlackSpots(blackBlobs, actualBlackBlobs, cameraHeight,
+    if (findCorrelatedBlackSpots(blackSpots, actualBlackSpots, cameraHeight,
                                  foundBall)) {
 #ifdef OFFLINE
         //foundBall = true;
@@ -656,12 +676,6 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
         return true;
 #endif
 	}
-    if (foundBall) {
-        std::cout << "Done" << std::endl;
-        std::cout << "Best " << _best.y_rel << std::endl;
-    } else {
-        std::cout << "Done no" << std::endl;
-    }
 
     return foundBall;
 }
@@ -756,7 +770,6 @@ void Ball::compute()
     expectedDiam = pixDiameterFromDist(hypotDist);
 
     if (dist > 500) {
-        std::cout << "Setting confidence to 0" << std::endl;
         //_confidence = 0;
     }
 }
