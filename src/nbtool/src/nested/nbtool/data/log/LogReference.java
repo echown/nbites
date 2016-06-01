@@ -4,16 +4,12 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.ref.WeakReference;
-import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
 import nbtool.nio.FileIO;
@@ -94,6 +90,7 @@ public class LogReference {
 	public String description = null;
 	
 	public long savedID = -1;
+	public long thisID = Utility.getNextIndex(this);
 	
 	private WeakReference<Log> theLog = null;
 	private Path tempPath = null;
@@ -289,8 +286,8 @@ public class LogReference {
 	}
 	
 	public String guiString() {
-		return String.format("log %d: %s from %s@%s time %d %s", 
-				savedID, logClass, host_name, host_addr, createdWhen, temporary() ? "TEMP" : "LOAD"); 
+		return String.format("log r%d: %s from %s@%s time %d %s", 
+				thisID, logClass, host_name, host_addr, createdWhen, temporary() ? "TEMP" : "LOAD"); 
 	}
 	
 	public static void _NBL_ADD_TESTS_() {
