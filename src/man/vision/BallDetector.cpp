@@ -428,7 +428,7 @@ bool BallDetector::findCorrelatedBlackSpots
 }
 
 /* This function is called when one of our detectors has found a
-   ball. For now it creates a ball from the blob used to find it.
+   ball. For now it creates a ball from the spot used to find it.
    Also, it might set this as the "best" ball based on confidence
    ratings. Since we process balls in terms of highest confidence
    methods first, in practice (on the robot) this won't matter as
@@ -445,7 +445,7 @@ void BallDetector::makeBall(Spot spot, double cameraHeight, double conf,
            width, topCamera, spot.ix() + width / 2, -spot.iy() + height / 2, conf);
     _best = b;
 #ifdef OFFLINE
-		candidates.push_back(b);
+	candidates.push_back(b);
 #endif
 }
 
@@ -499,7 +499,8 @@ void BallDetector::makeEdgeList(EdgeList & edges)
 }
 
 bool BallDetector::filterWhiteSpot(Spot spot,
-                                   std::vector<std::pair<int,int>> & blackSpots)
+                                   std::vector<std::pair<int,int>> & blackSpots,
+								   std::vector<std::pair<int,int>> & badBlack)
 {
     // convert back to raw coordinates
     int leftX = spot.ix() + width / 2 - spot.innerDiam / 4;
@@ -531,6 +532,22 @@ bool BallDetector::filterWhiteSpot(Spot spot,
     }
     // for now, if there are no black spots then it is too dangerous
     if (spots < 1) {
+        return false;
+    }
+
+    // count up how many bad black spots are inside
+    int badspots = 0;
+    for (int j = 0; j < badBlack.size(); j++) {
+        std::pair<int,int> blackspot = badBlack[j];
+        if (blackspot.first > spot.xLo() + width / 2 &&
+            blackspot.first < spot.xHi() + width / 2 &&
+            blackspot.second > spot.yLo() + height / 2 &&
+            blackspot.second < spot.yHi() + height / 2) {
+            badspots++;
+        }
+    }
+    // for now, if there are several bad spots then it is too dangerous
+    if (badspots > 1) {
         return false;
     }
 
@@ -576,6 +593,7 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
     // Then we are going to filter out all of the blobs that obviously
     // aren't part of the ball
     std::vector<std::pair<int,int>> blackSpots;
+    std::vector<std::pair<int,int>> badBlackSpots;
 	std::vector<Spot> actualBlackSpots;
 	std::vector<Spot> actualWhiteSpots;
 
@@ -609,6 +627,7 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
 				(*i).spotType = DARK_CANDIDATE;
 			} else {
 				(*i).spotType = DARK_REJECT;
+				badBlackSpots.push_back(std::make_pair(midX, midY));
 			}
 			if (debugBall) {
 				debugBlackSpots.push_back((*i));
@@ -632,7 +651,7 @@ bool BallDetector::findBall(ImageLiteU8 white, double cameraHeight,
         int midY = -(*i).iy() + height / 2;
 		(*i).rawX = midX;
 		(*i).rawY = midY;
-        if (filterWhiteSpot((*i), blackSpots)) {
+        if (filterWhiteSpot((*i), blackSpots, badBlackSpots)) {
             actualWhiteSpots.push_back((*i));
             makeBall((*i), cameraHeight, 0.75, foundBall, false);
             foundBall = true;

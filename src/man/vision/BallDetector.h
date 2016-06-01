@@ -93,7 +93,8 @@ namespace man {
 			bool findBall(ImageLiteU8 white, double cameraHeight, EdgeList& edges);
 
             bool filterBlackSpots(Spot currentBlob);
-            bool filterWhiteSpot(Spot spot, std::vector<std::pair<int,int>> & blackSpots);
+            bool filterWhiteSpot(Spot spot, std::vector<std::pair<int,int>> & blackSpots,
+								 std::vector<std::pair<int,int>> & badBlackSpots);
             int filterWhiteBlobs(Blob currentBlob,
                                   std::vector<std::pair<int,int>> & blobs,
                                   std::vector<std::pair<int,int>> blackBlobs);
